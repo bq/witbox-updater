@@ -60,7 +60,12 @@ class FirmwareUpdaterApp():
         self.top.geometry("%dx%d+%d+%d" % (w, h, screen_w/2-w/2, screen_h/2-h/2))
         self.top.resizable(0,0)
         self.top.title("BQ - 3D Printers Firmware Updater")
-        self.top.iconbitmap(os.path.join(self._get_resources_path(), "images", "32.ico"))
+
+        if platform.system() == "Linux":
+            img = PhotoImage(file=os.path.join(self._get_resources_path(), "images", "64_border.png"))
+            self.top.tk.call('wm','iconphoto', self.top._w, img)
+        if platform.system() == "Windows":
+            self.top.wm_iconbitmap(bitmap=os.path.join(self._get_resources_path(), "images", "64_border.png"))
         self.top.protocol("WM_DELETE_WINDOW", self._clean_exit)
 
         # Fonts
@@ -120,8 +125,12 @@ class FirmwareUpdaterApp():
         s.theme_use('clam')
         s.configure("custom.Horizontal.TProgressbar", foreground='#D5075E', background='#D5075E')
         self.g_progress_bar = ttk.Progressbar(self.bottom_frame, style="custom.Horizontal.TProgressbar", orient='horizontal', mode='indeterminate')
-        self.progress_bar_speed = 2
+        if platform.system() == "Windows":
+            self.progress_bar_speed = 2
+        elif platform.system() == "Linux":
+            self.progress_bar_speed = 7
         self.g_retry_check_button = Button(self.bottom_frame, text="Retry", font=self.f_button, relief=GROOVE, bd=2)
+        self.g_exit_button = Button(self.bottom_frame, text="Exit", font=self.f_button, relief=GROOVE, bd=2)
 
 
         # GUI frames placement
@@ -161,6 +170,7 @@ class FirmwareUpdaterApp():
         # GUI bindings
         self.g_check_for_updates_button.config(command=self.check_for_updates)
         self.g_retry_check_button.config(command=self.check_for_updates)
+        self.g_exit_button.config(command=self._clean_exit)
         self.g_update_button.config(command=self.update_firmware)
         self.g_manually_update_button.config(command=self.manually_update_firmware)
         self.g_serial_port_combobox.bind("<Button-1>", self._update_serial_port_combobox)
@@ -211,7 +221,7 @@ class FirmwareUpdaterApp():
   
     def check_for_updates(self):
         # Check if ready to check for updates
-        if self.g_serial_port_combobox_v.get() not in [str(port)[str(port).find('(')+1:str(port).find(')')] for port in serial.tools.list_ports.comports()]:
+        if self.g_serial_port_combobox_v.get() not in self._get_serial_ports():
             self.logger.info("Invalid serial port")
             return
         self._stop_checking_serial_port_connections = True
@@ -412,7 +422,7 @@ class FirmwareUpdaterApp():
         self.g_progress_bar.stop()
 
         self.g_middle_frame_2_label_1.pack(side=LEFT, fill=X, expand=1)
-        self.g_middle_frame_2_label_1_v.set("(1/2) Downloading new firmware...")
+        self.g_middle_frame_2_label_1_v.set("(1/3) Downloading new firmware...")
         self.g_progress_bar.pack(side=TOP, fill=X, expand=1)
         self.g_progress_bar.start(self.progress_bar_speed)
 
@@ -498,7 +508,7 @@ class FirmwareUpdaterApp():
         return
 
     def _flash_firmware(self, e=None):
-        self.g_middle_frame_2_label_1_v.set("(2/2) Flashing new firmware...")
+        self.g_middle_frame_2_label_1_v.set("(2/3) Flashing new firmware...")
         self.g_progress_bar.stop()
         self.g_progress_bar.start(self.progress_bar_speed)
 
@@ -536,9 +546,14 @@ class FirmwareUpdaterApp():
             
                     self.logger.debug(line)
             
-                    if avrdude_filename + ": writing" in line:
+                    if avrdude_filename + ": writing flash" in line:
                         self.logger.info("Writing memory...")
             
+                    elif avrdude_filename + ": reading" in line:
+                        self.logger.info("Reading memory...")
+                        self.g_middle_frame_2_label_1_v.set("(3/3) Verifying new firmware...")
+                        self.top.update()
+
                     elif avrdude_filename + ": verifying ..." in line:
                         self.logger.info("Verifying memory...")
             
@@ -590,6 +605,7 @@ class FirmwareUpdaterApp():
         self.g_status_icon.pack(side=LEFT)
         self.g_middle_frame_2_label_1.pack(side=LEFT, fill=X, expand=1)
         self.g_middle_frame_2_label_2.pack(side=RIGHT)
+        self.g_exit_button.pack(side=LEFT, fill=X, expand=1)
 
         self._show_gui_as_normal()
         return
@@ -626,13 +642,21 @@ class FirmwareUpdaterApp():
         self.top.update()
 
     def _update_serial_port_combobox(self, e=None):
-        new_options = [self.serial_port_default_value] + [str(port)[str(port).find('(')+1:str(port).find(')')] for port in serial.tools.list_ports.comports()]
-
+        new_options = self._get_serial_ports()
         if new_options == self._get_serial_port_combobox_values():
             return
         else:
             self.g_serial_port_combobox.config(values=new_options)
         return
+
+    def _get_serial_ports(self):
+        if platform.system() == "Windows":
+            return [self.serial_port_default_value] + [str(port)[str(port).find('(')+1:str(port).find(')')] for port in serial.tools.list_ports.comports()]
+        elif platform.system() == "Linux":
+            return [self.serial_port_default_value] + [ p[0] for p in serial.tools.list_ports.comports() if p[-1] != "n/a"]
+        else:
+            self.logger.error("OS not recognized")
+            return
 
     def _serial_port_combobox_changed(self, *args):
         if self.g_serial_port_combobox_v.get() != self.serial_port_default_value:
