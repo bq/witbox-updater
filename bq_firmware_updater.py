@@ -65,7 +65,7 @@ class FirmwareUpdaterApp():
             img = PhotoImage(file=os.path.join(self._get_resources_path(), "images", "64_border.png"))
             self.top.tk.call('wm','iconphoto', self.top._w, img)
         if platform.system() == "Windows":
-            self.top.wm_iconbitmap(bitmap=os.path.join(self._get_resources_path(), "images", "64_border.png"))
+            self.top.wm_iconbitmap(bitmap=os.path.join(self._get_resources_path(), "images", "64_border.ico"))
         self.top.protocol("WM_DELETE_WINDOW", self._clean_exit)
 
         # Fonts
@@ -262,11 +262,15 @@ class FirmwareUpdaterApp():
 
             # Wait for printer to start up
             response = self.ser.readline().strip()
-            while "SD card ok" not in response and "SD init fail" not in response:
+            for retry in range(5):
+                if "SD card ok" in response or "SD init fail" in response:
+                    break
                 self.logger.debug("Got: %s" % response)
                 response = self.ser.readline().strip()
 
             self.logger.debug("Got: %s" % response)
+            if not ("SD card ok" in response or "SD init fail" in response):
+                raise Exception
 
             # Send M115 to get the printers info
             self.logger.debug("Sending M115...")
@@ -298,7 +302,7 @@ class FirmwareUpdaterApp():
             except:
                 self.logger.error("Unable to parse pair from M115 response")
 
-        if "FIRMWARE_VERSION" not in self.printer_info.keys() or "MACHINE_TYPE" not in self.printer_info.keys(): # TOERASE - for testing
+        if "FIRMWARE_VERSION" not in self.printer_info.keys() or "MACHINE_TYPE" not in self.printer_info.keys() or True: # TOERASE - for testing
             self.logger.debug("Insufficient data in M115 response to recognize device")
             self.update_info = None
             self.top.event_generate("<<go_to_unknown_device>>", when="tail")
