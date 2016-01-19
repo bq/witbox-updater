@@ -106,6 +106,7 @@ class FirmwareUpdaterApp():
         self.g_check_for_updates_button = Button(self.middle_frame_2, text="Connect to device", font=self.f_button, relief=GROOVE, bd=2)
         self.valid_icon = ImageTk.PhotoImage(Image.open(os.path.join(self._get_resources_path(), "images", "icon_valid.png")))
         self.warning_icon = ImageTk.PhotoImage(Image.open(os.path.join(self._get_resources_path(), "images", "icon_warning.png")))
+        self.download_icon = ImageTk.PhotoImage(Image.open(os.path.join(self._get_resources_path(), "images", "icon_download.png")))
         self.g_status_icon = Label(self.middle_frame_2)
         self.g_middle_frame_2_label_1_v = StringVar(self.middle_frame_2)
         self.g_middle_frame_2_label_1 = Label(self.middle_frame_2, font=self.f_middle_label_1, textvariable=self.g_middle_frame_2_label_1_v)
@@ -346,7 +347,7 @@ class FirmwareUpdaterApp():
     def _update_available(self, e=None):
         self.logger.debug("_update_available")
         
-        self.g_status_icon.config(image=self.valid_icon)
+        self.g_status_icon.config(image=self.download_icon)
         self.g_middle_frame_2_label_1_v.set(self.printer_info["MACHINE_TYPE"].replace("_", " "))
         self.g_middle_frame_2_label_2_v.set("(%s version available)" % self.update_info["ota"]["version"])
 
