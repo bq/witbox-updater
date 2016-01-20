@@ -3,6 +3,7 @@
 block_cipher = None
 
 files_to_add = [('./images/*', 'images/'),
+		('./utils/avrdude', 'utils/'),
                 ('./utils/avrdude.exe', 'utils/'),
                 ('./utils/avrdude.conf', 'utils/'),
                 ('./utils/libusb0.dll', 'utils/')]

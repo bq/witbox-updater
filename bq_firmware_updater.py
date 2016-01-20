@@ -73,6 +73,7 @@ class FirmwareUpdaterApp():
         self.f_label = tkFont.Font(family="Tahoma", size=-16)
         self.f_combobox = tkFont.Font(family="Tahoma", size=-12)
         self.f_button = tkFont.Font(family="Tahoma", size=-12)
+        self.f_button_hover = tkFont.Font(family="Tahoma", size=-12, weight="bold")
         self.f_middle_label_1 = tkFont.Font(family="Tahoma", size=-12)
         self.f_middle_label_2 = tkFont.Font(family="Tahoma", size=-12, weight="bold")
         self.f_label_bottom = tkFont.Font(family="Tahoma", size=-12)
@@ -103,10 +104,9 @@ class FirmwareUpdaterApp():
         self.g_serial_port_combobox = ttk.Combobox(self.middle_frame_1, font=self.f_combobox, textvariable=self.g_serial_port_combobox_v, values=[self.serial_port_default_value], state="readonly")
 
         # ** Middle frame 2
-        self.g_check_for_updates_button = Button(self.middle_frame_2, text="Connect to device", font=self.f_button, relief=GROOVE, bd=2)
+        self.g_check_for_updates_button = Button(self.middle_frame_2, text="Connect to device", font=self.f_button, relief=GROOVE, bd=2, cursor="hand1")
         self.valid_icon = ImageTk.PhotoImage(Image.open(os.path.join(self._get_resources_path(), "images", "icon_valid.png")))
         self.warning_icon = ImageTk.PhotoImage(Image.open(os.path.join(self._get_resources_path(), "images", "icon_warning.png")))
-        self.download_icon = ImageTk.PhotoImage(Image.open(os.path.join(self._get_resources_path(), "images", "icon_download.png")))
         self.g_status_icon = Label(self.middle_frame_2)
         self.g_middle_frame_2_label_1_v = StringVar(self.middle_frame_2)
         self.g_middle_frame_2_label_1 = Label(self.middle_frame_2, font=self.f_middle_label_1, textvariable=self.g_middle_frame_2_label_1_v)
@@ -129,10 +129,9 @@ class FirmwareUpdaterApp():
         if platform.system() == "Windows":
             self.progress_bar_speed = 2
         elif platform.system() == "Linux":
-            self.progress_bar_speed = 7
+            self.progress_bar_speed = 9
         self.g_retry_check_button = Button(self.bottom_frame, text="Retry", font=self.f_button, relief=GROOVE, bd=2)
         self.g_exit_button = Button(self.bottom_frame, text="Exit", font=self.f_button, relief=GROOVE, bd=2)
-
 
         # GUI frames placement
         self.left_frame.pack(side=LEFT)
@@ -148,7 +147,6 @@ class FirmwareUpdaterApp():
         self.bottom_frame.pack(side=TOP)
         self.bottom_frame.pack_propagate(False)
         
-
         # GUI elements placement
 
         # ** Left frame
@@ -187,6 +185,10 @@ class FirmwareUpdaterApp():
         self.g_serial_port_combobox_v.trace("w", self._serial_port_combobox_changed)
         self.g_printer_combobox_v.trace("w", self._printer_combobox_changed)
 
+        self.g_check_for_updates_button.bind("<Enter>", self._hover_enter)
+        self.g_check_for_updates_button.bind("<Leave>", self._hover_leave)
+
+
         # Give value to the comboboxes and make the buttons refresh themselves
         self._update_serial_port_combobox()
         if len(self._get_serial_port_combobox_values()) == 2:
@@ -204,20 +206,19 @@ class FirmwareUpdaterApp():
 
         # Start GUI
         try:
+            self.top.after(0, self._check_serial_port_connections)
             self.top.mainloop()
         except KeyboardInterrupt:
             self._clean_exit()
     
     def _check_serial_port_connections(self):
-        while not self._stop_checking_serial_port_connections:
-            try:
-                serial_ports = [str(port)[str(port).find('(')+1:str(port).find(')')] for port in serial.tools.list_ports.comports()]
-                if len(serial_ports) == 1 and self.g_serial_port_combobox_v.get() != serial_ports[0]:
-                    self.g_serial_port_combobox_v.set(serial_ports[0])
-                elif len(serial_ports) == 0 and self.g_serial_port_combobox_v.get() != self.serial_port_default_value:
-                    self.g_serial_port_combobox_v.set(self.serial_port_default_value)
-            except:
-                self.logger.exception("Unable to check new serial port connections")
+        if not self._stop_checking_serial_port_connections:
+            serial_ports = self._get_serial_ports()
+            if len(serial_ports) == 1 and self.g_serial_port_combobox_v.get() != serial_ports[0]:
+                self.g_serial_port_combobox_v.set(serial_ports[0])
+            elif len(serial_ports) == 0 and self.g_serial_port_combobox_v.get() != self.serial_port_default_value:
+                self.g_serial_port_combobox_v.set(self.serial_port_default_value)
+        self.top.after(1000 , self._check_serial_port_connections)
         return
   
     def check_for_updates(self):
@@ -262,16 +263,17 @@ class FirmwareUpdaterApp():
 
             # Wait for printer to start up
             response = self.ser.readline().strip()
-            for retry in range(5):
-                if "SD card ok" in response or "SD init fail" in response:
-                    break
+            retries = 10
+            while not ("SD card ok" in response or "SD init fail" in response):
                 self.logger.debug("Got: %s" % response)
+                if response == "":
+                    retries -= 1
+                if retries == 0:
+                    raise Exception("Timeout trying to recognize device")
                 response = self.ser.readline().strip()
 
             self.logger.debug("Got: %s" % response)
-            if not ("SD card ok" in response or "SD init fail" in response):
-                raise Exception
-
+            
             # Send M115 to get the printers info
             self.logger.debug("Sending M115...")
             self.ser.write("M115\n")
@@ -302,7 +304,7 @@ class FirmwareUpdaterApp():
             except:
                 self.logger.error("Unable to parse pair from M115 response")
 
-        if "FIRMWARE_VERSION" not in self.printer_info.keys() or "MACHINE_TYPE" not in self.printer_info.keys() or True: # TOERASE - for testing
+        if "FIRMWARE_VERSION" not in self.printer_info.keys() or "MACHINE_TYPE" not in self.printer_info.keys():
             self.logger.debug("Insufficient data in M115 response to recognize device")
             self.update_info = None
             self.top.event_generate("<<go_to_unknown_device>>", when="tail")
@@ -313,11 +315,8 @@ class FirmwareUpdaterApp():
             self.printer_info["X-FIRMWARE_LANGUAGE"] = "en"
         printer_model = urllib.quote(self.printer_info["MACHINE_TYPE"])
         fw_version = urllib.quote(self.printer_info["FIRMWARE_VERSION"])
-        fw_version = "1.9.9" # TOERASE - for testing
         fw_language = urllib.quote(self.printer_info["X-FIRMWARE_LANGUAGE"])
         ws_url = self.ws_unformatted_url.format(model=printer_model, language=fw_language, version=fw_version)
-
-        self.logger.debug(ws_url)
 
         # Send request to Kiton server
         self.logger.debug("Sending request to Kiton server...")
@@ -351,9 +350,9 @@ class FirmwareUpdaterApp():
     def _update_available(self, e=None):
         self.logger.debug("_update_available")
         
-        self.g_status_icon.config(image=self.download_icon)
+        self.g_status_icon.config(image=self.valid_icon)
         self.g_middle_frame_2_label_1_v.set(self.printer_info["MACHINE_TYPE"].replace("_", " "))
-        self.g_middle_frame_2_label_2_v.set("(%s version available)" % self.update_info["ota"]["version"])
+        self.g_middle_frame_2_label_2_v.set("(new version available)")
 
         self.g_progress_bar.pack_forget()
         self.g_middle_frame_2_label_1.pack_forget()
@@ -513,7 +512,7 @@ class FirmwareUpdaterApp():
         return
 
     def _flash_firmware(self, e=None):
-        self.g_middle_frame_2_label_1_v.set("(2/3) Flashing new firmware...")
+        self.g_middle_frame_2_label_1_v.set("(2/3) Flashing new firmware...\nThis could take several minutes. Please wait.")
         self.g_progress_bar.stop()
         self.g_progress_bar.start(self.progress_bar_speed)
 
@@ -525,7 +524,6 @@ class FirmwareUpdaterApp():
         return
 
     def _flash_worker(self):
-
         if platform.system() == "Windows":
             avrdude_filename = "avrdude.exe"
         elif platform.system() == "Linux":
@@ -556,7 +554,7 @@ class FirmwareUpdaterApp():
             
                     elif avrdude_filename + ": reading" in line:
                         self.logger.info("Reading memory...")
-                        self.g_middle_frame_2_label_1_v.set("(3/3) Verifying new firmware...")
+                        self.g_middle_frame_2_label_1_v.set("(3/3) Verifying new firmware...\nThis could take several minutes. Please wait.")
                         self.top.update()
 
                     elif avrdude_filename + ": verifying ..." in line:
@@ -617,8 +615,19 @@ class FirmwareUpdaterApp():
 
     def _flashing_error(self, e=None):
         self.logger.debug("Flashing error")
-        self.g_bottom_frame_label_v.set("Flashing error")
+
+        self.g_status_icon.config(image=self.warning_icon)
+        self.g_middle_frame_2_label_1_v.set("An error occurred during flashing.\n")
+
+        self.g_progress_bar.pack_forget()
+        self.g_middle_frame_2_label_1.pack_forget()
+
+        self.g_status_icon.pack(side=LEFT)
+        self.g_middle_frame_2_label_1.pack(side=LEFT, fill=X, expand=1)
+        self.g_exit_button.pack(side=LEFT, fill=X, expand=1)
+
         self._show_gui_as_normal()
+        return
 
 
     # Auxiliar methods
@@ -646,8 +655,15 @@ class FirmwareUpdaterApp():
         self.g_printer_combobox.config(state="disabled")
         self.top.update()
 
+    def _hover_enter(self, e):
+        if e.widget.cget("state") == "NORMAL":
+            e.widget.config(font=self.f_button_hover)
+
+    def _hover_leave(self, e):
+        e.widget.config(font=self.f_button)
+
     def _update_serial_port_combobox(self, e=None):
-        new_options = self._get_serial_ports()
+        new_options = self._get_serial_ports() + [self.serial_port_default_value]
         if new_options == self._get_serial_port_combobox_values():
             return
         else:
@@ -656,9 +672,9 @@ class FirmwareUpdaterApp():
 
     def _get_serial_ports(self):
         if platform.system() == "Windows":
-            return [self.serial_port_default_value] + [str(port)[str(port).find('(')+1:str(port).find(')')] for port in serial.tools.list_ports.comports()]
+            return [str(port)[str(port).find('(')+1:str(port).find(')')] for port in serial.tools.list_ports.comports()]
         elif platform.system() == "Linux":
-            return [self.serial_port_default_value] + [ p[0] for p in serial.tools.list_ports.comports() if p[-1] != "n/a"]
+            return [p[0] for p in serial.tools.list_ports.comports() if p[-1] != "n/a"]
         else:
             self.logger.error("OS not recognized")
             return
@@ -686,11 +702,11 @@ class FirmwareUpdaterApp():
         except:
             pass
         try:
-            exit(0)
+            self.top.destroy()
         except:
             pass
         try:
-            self.top.destroy()
+            exit(0)
         except:
             pass
 
