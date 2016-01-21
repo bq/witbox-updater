@@ -22,6 +22,7 @@ import tempfile
 import threading
 import sarge
 import Image, ImageTk
+import time
 
 
 class FirmwareUpdaterApp():
@@ -261,8 +262,20 @@ class FirmwareUpdaterApp():
 
             self.logger.debug("Connected to printer.")
 
+            # Check if connection was done
+            connection_timeout = 10
+            response = self.ser.read().strip()
+            while ord(response) == 0:
+                self.logger.debug("Connection test retry")
+                time.sleep(1)
+                connection_timeout -= 1
+                if connection_timeout == 0:
+                    self.logger.debug("Connection timeout")
+                    raise Exception("Timeout trying to recognize device")
+                response = self.ser.read()
+            
+            response = self.ser.readline().strip()            
             # Wait for printer to start up
-            response = self.ser.readline().strip()
             retries = 10
             while not ("SD card ok" in response or "SD init fail" in response):
                 self.logger.debug("Got: %s" % response)
@@ -575,7 +588,6 @@ class FirmwareUpdaterApp():
                     e_msg = "Avrdude returned code {returncode}".format(returncode=p.returncode)
                     raise AvrdudeException
             else:
-                import time
                 time.sleep(1)
                 self.logger.warning("Flashing simulated.")
                 self.top.event_generate("<<go_to_flashing_successful>>", when="tail")
