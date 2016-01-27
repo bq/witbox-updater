@@ -556,62 +556,13 @@ class FirmwareUpdaterApp():
         try:
             if not self.simulate_flashing:
                 import subprocess
-
                 p = subprocess.Popen(avrdude_command, shell=True)
-                #p = sarge.run(avrdude_command, cwd=working_dir, async=True, stdout=sarge.Capture(), stderr=sarge.Capture())
 
-                time.sleep(1)
-
-                '''
-                while True:
-                    if time.time() - init_time > flash_timeout:
-                        e_msg = "Timeout"
-                        raise AvrdudeException
-                    try:
-                        p.returncode
-                    except:
-                        time.sleep(1)
-                    else:
-                        break
-
-                while p.returncode is None:
-                '''
                 while p.poll() is None:
                     if time.time() - init_time > flash_timeout:
                         e_msg = "Timeout"
                         raise AvrdudeException
-
                     continue
-
-                    line = p.stdout.readline()
-
-                    '''
-                    line = p.stderr.read(timeout=0.5)
-                    if not line:
-                        p.commands[0].poll()
-                        continue
-                    '''
-
-                    self.logger.debug(line)
-            
-                    if avrdude_filename + ": writing flash" in line:
-                        self.logger.info("Writing memory...")
-            
-                    elif avrdude_filename + ": reading on-chip flash data" in line:
-                        self.logger.info("Reading memory...")
-                        self.g_middle_frame_2_label_1_v.set("(3/3) Verifying new firmware...\nThis could take several minutes. Please wait.")
-                        self.top.update()
-
-                    elif avrdude_filename + ": verifying ..." in line:
-                        self.logger.info("Verifying memory...")
-            
-                    elif "timeout communicating with programmer" in line:
-                        e_msg = "Timeout communicating with programmer"
-                        raise AvrdudeException
-            
-                    elif "avrdude: ERROR:" in line:
-                        e_msg = "AVRDUDE error: " + line[line.find("avrdude: ERROR:")+len("avrdude: ERROR:"):].strip()
-                        raise AvrdudeException
 
                 if p.returncode == 0:
                     self.logger.info("Flashing successful.")
@@ -625,6 +576,10 @@ class FirmwareUpdaterApp():
                 self.top.event_generate("<<go_to_flashing_successful>>", when="tail")
 
         except AvrdudeException:
+            try:
+                p.kill()
+            except:
+                self.logger.debug("Unable to terminate avrdude process")
             self.logger.error("Flashing failed: %s." % e_msg)
             self.top.event_generate("<<go_to_flashing_error>>", when="tail")
         except:
@@ -636,7 +591,6 @@ class FirmwareUpdaterApp():
                 os.remove(hex_path)
             except:
                 self.logger.exception("Unable to delete temp hex file")
-
         return
 
     def _flashing_successful(self, e=None):
