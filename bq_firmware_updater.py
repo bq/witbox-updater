@@ -108,6 +108,7 @@ class FirmwareUpdaterApp():
         self.g_check_for_updates_button = Button(self.middle_frame_2, text="Connect to device", font=self.f_button, relief=GROOVE, bd=2, cursor="hand1")
         self.valid_icon = ImageTk.PhotoImage(Image.open(os.path.join(self._get_resources_path(), "images", "icon_valid.png")))
         self.warning_icon = ImageTk.PhotoImage(Image.open(os.path.join(self._get_resources_path(), "images", "icon_warning.png")))
+        self.download_icon = ImageTk.PhotoImage(Image.open(os.path.join(self._get_resources_path(), "images", "icon_download.png")))
         self.g_status_icon = Label(self.middle_frame_2)
         self.g_middle_frame_2_label_1_v = StringVar(self.middle_frame_2)
         self.g_middle_frame_2_label_1 = Label(self.middle_frame_2, font=self.f_middle_label_1, textvariable=self.g_middle_frame_2_label_1_v)
@@ -301,10 +302,12 @@ class FirmwareUpdaterApp():
                 
             self.logger.debug("Got response from printer: %s" % response)
 
-            # Disconnect from printer
-            self.ser.close()
 
+            self.ser.close()
+            self.logger.debug("Disconnected from printer")
         except:
+            self.ser.close()
+            self.logger.debug("Disconnected from printer")
             self.logger.exception("Error while communicating with printer")
             self.top.event_generate("<<go_to_unknown_device>>", when="tail")
             return
@@ -363,7 +366,7 @@ class FirmwareUpdaterApp():
     def _update_available(self, e=None):
         self.logger.debug("_update_available")
         
-        self.g_status_icon.config(image=self.valid_icon)
+        self.g_status_icon.config(image=self.download_icon)
         self.g_middle_frame_2_label_1_v.set(self.printer_info["MACHINE_TYPE"].replace("_", " "))
         self.g_middle_frame_2_label_2_v.set("(new version available)")
 
@@ -555,6 +558,7 @@ class FirmwareUpdaterApp():
         try:
             if not self.simulate_flashing:
                 p = sarge.run(avrdude_command, cwd=working_dir, async=True, stdout=sarge.Capture(), stderr=sarge.Capture())
+                self.logger.debug("sarge run done")
 
                 while True:
                     if time.time() - init_time > flash_timeout:
@@ -563,6 +567,7 @@ class FirmwareUpdaterApp():
                     try:
                         p.returncode
                     except:
+                        self.logger.debug("p.returncode raised exception")
                         time.sleep(0.5)
                     else:
                         break
@@ -574,7 +579,10 @@ class FirmwareUpdaterApp():
 
                     line = p.stderr.read(timeout=0.5)
                     if not line:
-                        p.commands[0].poll()
+                        try:
+                            p.commands[0].poll()
+                        except:
+                            self.logger.debug("No commands[0] found")
                         continue
             
                     self.logger.debug(line)

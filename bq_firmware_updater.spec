@@ -3,7 +3,7 @@
 block_cipher = None
 
 files_to_add = [('./images/*', 'images/'),
-		('./utils/avrdude', 'utils/'),
+    ('./utils/avrdude', 'utils/'),
                 ('./utils/avrdude.exe', 'utils/'),
                 ('./utils/avrdude.conf', 'utils/'),
                 ('./utils/libusb0.dll', 'utils/')]
@@ -26,9 +26,9 @@ exe = EXE(pyz,
           a.binaries,
           a.zipfiles,
           a.datas,
-          name='BQ_Firmware_Updater',
+          name='bq_firmware_updater',
           debug=False,
           strip=False,
           upx=True,
-          console=False,
-          icon="images\\32.ico" )
+          console=True,
+          icon="images\\32.ico")
