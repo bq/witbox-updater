@@ -328,6 +328,7 @@ class FirmwareUpdaterApp():
             self.printer_info["X-FIRMWARE_LANGUAGE"] = "en"
         printer_model = urllib.quote(self.printer_info["MACHINE_TYPE"])
         fw_version = urllib.quote(self.printer_info["FIRMWARE_VERSION"])
+        fw_version = "1.9.9" # TOERASE
         fw_language = urllib.quote(self.printer_info["X-FIRMWARE_LANGUAGE"])
         ws_url = self.ws_unformatted_url.format(model=printer_model, language=fw_language, version=fw_version)
 
@@ -554,9 +555,14 @@ class FirmwareUpdaterApp():
 
         try:
             if not self.simulate_flashing:
-                p = sarge.run(avrdude_command, cwd=working_dir, async=True, stdout=sarge.Capture(), stderr=sarge.Capture())
+                import subprocess
+
+                p = subprocess.Popen(avrdude_command, shell=True)
+                #p = sarge.run(avrdude_command, cwd=working_dir, async=True, stdout=sarge.Capture(), stderr=sarge.Capture())
+
                 time.sleep(1)
 
+                '''
                 while True:
                     if time.time() - init_time > flash_timeout:
                         e_msg = "Timeout"
@@ -569,21 +575,29 @@ class FirmwareUpdaterApp():
                         break
 
                 while p.returncode is None:
+                '''
+                while p.poll() is None:
                     if time.time() - init_time > flash_timeout:
                         e_msg = "Timeout"
                         raise AvrdudeException
 
+                    continue
+
+                    line = p.stdout.readline()
+
+                    '''
                     line = p.stderr.read(timeout=0.5)
                     if not line:
                         p.commands[0].poll()
                         continue
-            
+                    '''
+
                     self.logger.debug(line)
             
                     if avrdude_filename + ": writing flash" in line:
                         self.logger.info("Writing memory...")
             
-                    elif avrdude_filename + ": reading" in line:
+                    elif avrdude_filename + ": reading on-chip flash data" in line:
                         self.logger.info("Reading memory...")
                         self.g_middle_frame_2_label_1_v.set("(3/3) Verifying new firmware...\nThis could take several minutes. Please wait.")
                         self.top.update()
