@@ -301,16 +301,13 @@ class FirmwareUpdaterApp():
                 response = self.ser.readline().strip()
                 
             self.logger.debug("Got response from printer: %s" % response)
-
-
-            self.ser.close()
-            self.logger.debug("Disconnected from printer")
         except:
-            self.ser.close()
-            self.logger.debug("Disconnected from printer")
             self.logger.exception("Error while communicating with printer")
             self.top.event_generate("<<go_to_unknown_device>>", when="tail")
             return
+        finally:
+            self.ser.close()
+            self.logger.debug("Disconnected from printer")
 
         # Parse response
         self.printer_info = dict()
@@ -578,10 +575,7 @@ class FirmwareUpdaterApp():
 
                     line = p.stderr.read(timeout=0.5)
                     if not line:
-                        try:
-                            p.commands[0].poll()
-                        except:
-                            self.logger.debug("No commands[0] found")
+                        p.commands[0].poll()
                         continue
             
                     self.logger.debug(line)
