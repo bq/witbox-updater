@@ -558,7 +558,7 @@ class FirmwareUpdaterApp():
         try:
             if not self.simulate_flashing:
                 p = sarge.run(avrdude_command, cwd=working_dir, async=True, stdout=sarge.Capture(), stderr=sarge.Capture())
-                self.logger.debug("sarge run done")
+                time.sleep(1)
 
                 while True:
                     if time.time() - init_time > flash_timeout:
@@ -567,8 +567,7 @@ class FirmwareUpdaterApp():
                     try:
                         p.returncode
                     except:
-                        self.logger.debug("p.returncode raised exception")
-                        time.sleep(0.5)
+                        time.sleep(1)
                     else:
                         break
 
