@@ -549,12 +549,29 @@ class FirmwareUpdaterApp():
 
         self.logger.debug("Running %r in %s" % (' '.join(avrdude_command), working_dir))
 
+        flash_timeout = 180 # seconds
+        init_time = time.time()
+
         try:
             if not self.simulate_flashing:
                 p = sarge.run(avrdude_command, cwd=working_dir, async=True, stdout=sarge.Capture(), stderr=sarge.Capture())
-                p.wait_events()
+
+                while True:
+                    if time.time() - init_time > flash_timeout:
+                        e_msg = "Timeout"
+                        raise AvrdudeException
+                    try:
+                        p.returncode
+                    except:
+                        time.sleep(0.5)
+                    else:
+                        break
 
                 while p.returncode is None:
+                    if time.time() - init_time > flash_timeout:
+                        e_msg = "Timeout"
+                        raise AvrdudeException
+
                     line = p.stderr.read(timeout=0.5)
                     if not line:
                         p.commands[0].poll()
