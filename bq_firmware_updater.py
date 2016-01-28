@@ -654,10 +654,10 @@ class FirmwareUpdaterApp():
 
     def _hover_enter(self, e):
         if e.widget.cget("state") == "NORMAL":
-            e.widget.config(font=self.f_button_hover)
+            e.widget.config(font=self.f_button_hover, bg="#ECECEC")
 
     def _hover_leave(self, e):
-        e.widget.config(font=self.f_button)
+        e.widget.config(font=self.f_button, bg="#D9D9D9")
 
     def _update_serial_port_combobox(self, e=None):
         new_options = self._get_serial_ports() + [self.serial_port_default_value]
