@@ -393,8 +393,8 @@ class FirmwareUpdaterApp():
         self.g_middle_frame_2_label_1.pack_forget()
 
         self.g_status_icon.pack(side=LEFT)
-        self.g_middle_frame_2_label_1.pack(side=LEFT)
-        self.g_middle_frame_2_label_2.pack(side=LEFT)
+        self.g_middle_frame_2_label_1.pack(side=LEFT, fill=X, expand=1)
+        self.g_middle_frame_2_label_2.pack(side=RIGHT)
         
         self._show_gui_as_normal()
         return
