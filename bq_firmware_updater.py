@@ -65,8 +65,12 @@ class FirmwareUpdaterApp():
         if platform.system() == "Linux":
             img = PhotoImage(file=os.path.join(self._get_resources_path(), "images", "64_border.png"))
             self.top.tk.call('wm','iconphoto', self.top._w, img)
+            self.button_grey = "#D9D9D9"
+            self.button_hover_grey = "#ECECEC"
         if platform.system() == "Windows":
             self.top.wm_iconbitmap(bitmap=os.path.join(self._get_resources_path(), "images", "64_border.ico"))
+            self.button_grey = "#F0F0F0"
+            self.button_hover_grey = "#D9D9D9"
         self.top.protocol("WM_DELETE_WINDOW", self._clean_exit)
 
         # Fonts
@@ -74,7 +78,7 @@ class FirmwareUpdaterApp():
         self.f_label = tkFont.Font(family="Tahoma", size=-16)
         self.f_combobox = tkFont.Font(family="Tahoma", size=-12)
         self.f_button = tkFont.Font(family="Tahoma", size=-12)
-        self.f_button_hover = tkFont.Font(family="Tahoma", size=-12, weight="bold")
+        self.f_button_hover = tkFont.Font(family="Tahoma", size=-12)
         self.f_middle_label_1 = tkFont.Font(family="Tahoma", size=-12)
         self.f_middle_label_2 = tkFont.Font(family="Tahoma", size=-12, weight="bold")
         self.f_label_bottom = tkFont.Font(family="Tahoma", size=-12)
@@ -105,7 +109,7 @@ class FirmwareUpdaterApp():
         self.g_serial_port_combobox = ttk.Combobox(self.middle_frame_1, font=self.f_combobox, textvariable=self.g_serial_port_combobox_v, values=[self.serial_port_default_value], state="readonly")
 
         # ** Middle frame 2
-        self.g_check_for_updates_button = Button(self.middle_frame_2, text="Connect to device", font=self.f_button, relief=GROOVE, bd=2, cursor="hand2")
+        self.g_check_for_updates_button = Button(self.middle_frame_2, text="Connect to device", font=self.f_button, relief=GROOVE, bd=2, cursor="hand2", bg=self.button_grey)
         self.valid_icon = ImageTk.PhotoImage(Image.open(os.path.join(self._get_resources_path(), "images", "icon_valid.png")))
         self.warning_icon = ImageTk.PhotoImage(Image.open(os.path.join(self._get_resources_path(), "images", "icon_warning.png")))
         self.download_icon = ImageTk.PhotoImage(Image.open(os.path.join(self._get_resources_path(), "images", "icon_download.png")))
@@ -120,8 +124,8 @@ class FirmwareUpdaterApp():
         self.g_printer_combobox = ttk.Combobox(self.middle_frame_2, font=self.f_combobox, textvariable=self.g_printer_combobox_v, values=printers_list, state="readonly")        
 
         # ** Bottom frame
-        self.g_update_button = Button(self.bottom_frame, text="Update Firmware", font=self.f_button, relief=GROOVE, bd=2)
-        self.g_manually_update_button = Button(self.bottom_frame, text="Update Firmware", font=self.f_button, relief=GROOVE, bd=2)
+        self.g_update_button = Button(self.bottom_frame, text="Update Firmware", font=self.f_button, relief=GROOVE, bd=2, bg=self.button_grey)
+        self.g_manually_update_button = Button(self.bottom_frame, text="Update Firmware", font=self.f_button, relief=GROOVE, bd=2, bg=self.button_grey)
         self.g_bottom_frame_label_v = StringVar(self.bottom_frame)
         self.g_bottom_frame_label = Label(self.bottom_frame, font=self.f_label_bottom, textvariable=self.g_bottom_frame_label_v)
         s = ttk.Style()
@@ -132,8 +136,8 @@ class FirmwareUpdaterApp():
             self.progress_bar_speed = 2
         elif platform.system() == "Linux":
             self.progress_bar_speed = 9
-        self.g_retry_check_button = Button(self.bottom_frame, text="Retry", font=self.f_button, relief=GROOVE, bd=2)
-        self.g_exit_button = Button(self.bottom_frame, text="Exit", font=self.f_button, relief=GROOVE, bd=2)
+        self.g_retry_check_button = Button(self.bottom_frame, text="Retry", font=self.f_button, relief=GROOVE, bd=2, bg=self.button_grey)
+        self.g_exit_button = Button(self.bottom_frame, text="Exit", font=self.f_button, relief=GROOVE, bd=2, bg=self.button_grey)
 
         # GUI frames placement
         self.left_frame.pack(side=LEFT)
@@ -653,11 +657,12 @@ class FirmwareUpdaterApp():
         self.top.update()
 
     def _hover_enter(self, e):
-        if e.widget.cget("state") == "NORMAL":
-            e.widget.config(font=self.f_button_hover, bg="#ECECEC")
+        if e.widget.cget("state").lower() == "normal":
+            e.widget.config(font=self.f_button_hover, bg=self.button_hover_grey)
+
 
     def _hover_leave(self, e):
-        e.widget.config(font=self.f_button, bg="#D9D9D9")
+        e.widget.config(font=self.f_button, bg=self.button_grey)
 
     def _update_serial_port_combobox(self, e=None):
         new_options = self._get_serial_ports() + [self.serial_port_default_value]
