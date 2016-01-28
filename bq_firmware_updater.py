@@ -105,7 +105,7 @@ class FirmwareUpdaterApp():
         self.g_serial_port_combobox = ttk.Combobox(self.middle_frame_1, font=self.f_combobox, textvariable=self.g_serial_port_combobox_v, values=[self.serial_port_default_value], state="readonly")
 
         # ** Middle frame 2
-        self.g_check_for_updates_button = Button(self.middle_frame_2, text="Connect to device", font=self.f_button, relief=GROOVE, bd=2, cursor="hand1")
+        self.g_check_for_updates_button = Button(self.middle_frame_2, text="Connect to device", font=self.f_button, relief=GROOVE, bd=2, cursor="hand2")
         self.valid_icon = ImageTk.PhotoImage(Image.open(os.path.join(self._get_resources_path(), "images", "icon_valid.png")))
         self.warning_icon = ImageTk.PhotoImage(Image.open(os.path.join(self._get_resources_path(), "images", "icon_warning.png")))
         self.download_icon = ImageTk.PhotoImage(Image.open(os.path.join(self._get_resources_path(), "images", "icon_download.png")))
@@ -328,7 +328,6 @@ class FirmwareUpdaterApp():
             self.printer_info["X-FIRMWARE_LANGUAGE"] = "en"
         printer_model = urllib.quote(self.printer_info["MACHINE_TYPE"])
         fw_version = urllib.quote(self.printer_info["FIRMWARE_VERSION"])
-        fw_version = "1.9.9" # TOERASE
         fw_language = urllib.quote(self.printer_info["X-FIRMWARE_LANGUAGE"])
         ws_url = self.ws_unformatted_url.format(model=printer_model, language=fw_language, version=fw_version)
 
@@ -440,7 +439,7 @@ class FirmwareUpdaterApp():
         self.g_progress_bar.stop()
 
         self.g_middle_frame_2_label_1.pack(side=LEFT, fill=X, expand=1)
-        self.g_middle_frame_2_label_1_v.set("(1/3) Downloading new firmware...")
+        self.g_middle_frame_2_label_1_v.set("(1/2) Downloading new firmware...")
         self.g_progress_bar.pack(side=TOP, fill=X, expand=1)
         self.g_progress_bar.start(self.progress_bar_speed)
 
@@ -526,7 +525,7 @@ class FirmwareUpdaterApp():
         return
 
     def _flash_firmware(self, e=None):
-        self.g_middle_frame_2_label_1_v.set("(2/3) Flashing new firmware...\nThis could take several minutes. Please wait.")
+        self.g_middle_frame_2_label_1_v.set("(2/2) Flashing new firmware...\nThis could take several minutes. Please wait.")
         self.g_progress_bar.stop()
         self.g_progress_bar.start(self.progress_bar_speed)
 
