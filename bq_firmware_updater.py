@@ -270,7 +270,7 @@ class FirmwareUpdaterApp():
             # Check if connection was done
             connection_timeout = 10
             response = self.ser.read().strip()
-            while ord(response) == 0:
+            while len(response) == 0 or ord(response) == 0:
                 self.logger.debug("Connection test retry")
                 time.sleep(1)
                 connection_timeout -= 1
@@ -559,7 +559,7 @@ class FirmwareUpdaterApp():
         try:
             if not self.simulate_flashing:
                 import subprocess
-                p = subprocess.Popen(avrdude_command, shell=True)
+                p = subprocess.Popen(' '.join(avrdude_command), shell=True)
 
                 while p.poll() is None:
                     if time.time() - init_time > flash_timeout:
@@ -659,7 +659,6 @@ class FirmwareUpdaterApp():
     def _hover_enter(self, e):
         if e.widget.cget("state").lower() == "normal":
             e.widget.config(font=self.f_button_hover, bg=self.button_hover_grey)
-
 
     def _hover_leave(self, e):
         e.widget.config(font=self.f_button, bg=self.button_grey)
