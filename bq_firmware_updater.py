@@ -41,13 +41,13 @@ class FirmwareUpdaterApp():
 
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(logging_formatter)
-        console_handler.setLevel(logging.DEBUG)
+        console_handler.setLevel(logging.ERROR)
         self.logger.addHandler(console_handler)
 
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.ERROR)
         rot_handler = logging.handlers.RotatingFileHandler("bq_firmware_updater.log", maxBytes=10*1024*1024, backupCount=10)
         rot_handler.setFormatter(logging_formatter)
-        rot_handler.setLevel(logging.DEBUG)
+        rot_handler.setLevel(logging.ERROR)
         self.logger.addHandler(rot_handler)
 
     def start_gui(self):
@@ -543,13 +543,16 @@ class FirmwareUpdaterApp():
     def _flash_worker(self):
         if platform.system() == "Windows":
             avrdude_filename = "avrdude.exe"
+            avrdude_conf_filename = "avrdude_windows.conf"
         elif platform.system() == "Linux":
             avrdude_filename = "avrdude"
+            avrdude_conf_filename = "avrdude_linux.conf"
 
         avrdude_path = os.path.join(self._get_resources_path(), "utils", avrdude_filename)
+        avrdude_conf_path = os.path.join(self._get_resources_path(), "utils", avrdude_conf_filename)
         working_dir = os.path.dirname(os.path.abspath(avrdude_path))
         hex_path = os.path.abspath(self.temp_hex_file_path)
-        avrdude_command = [avrdude_path, "-v", "-p", "m2560", "-c", "wiring", "-P", self.printer_serial_port, "-U", "flash:w:" + hex_path + ":i", "-D"]
+        avrdude_command = [avrdude_path, "-v", "-p", "m2560", "-c", "wiring", "-P", self.printer_serial_port, "-C", avrdude_conf_path, "-U", "flash:w:" + hex_path + ":i", "-D"]
 
         self.logger.debug("Running %r in %s" % (' '.join(avrdude_command), working_dir))
 
@@ -560,6 +563,8 @@ class FirmwareUpdaterApp():
             if not self.simulate_flashing:
                 import subprocess
                 p = subprocess.Popen(' '.join(avrdude_command), shell=True)
+
+                time.sleep(5) # To make sure the command has been executed
 
                 while p.poll() is None:
                     if time.time() - init_time > flash_timeout:

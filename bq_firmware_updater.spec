@@ -3,9 +3,10 @@
 block_cipher = None
 
 files_to_add = [('./images/*', 'images/'),
-    ('./utils/avrdude', 'utils/'),
+                ('./utils/avrdude', 'utils/'),
                 ('./utils/avrdude.exe', 'utils/'),
-                ('./utils/avrdude.conf', 'utils/'),
+                ('./utils/avrdude_linux.conf', 'utils/'),
+                ('./utils/avrdude_windows.conf', 'utils/'),
                 ('./utils/libusb0.dll', 'utils/')]
 
 a = Analysis(['bq_firmware_updater.py'],
